@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Neo LiDAR SDK
 ---
 [TOC]
@@ -124,3 +125,6 @@ Reset the neo device.
 
 The `neopy` directory is the python package for neo device. Please refer the [README.md](numpy/README.md).
 
+=======
+# neo-sdk
+>>>>>>> 885108582d77166c4f3be96c45e3effe2bc50955
