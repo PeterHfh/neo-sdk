@@ -42,6 +42,7 @@ void error_destruct(error_s error) {
   NEO_ASSERT(error);
 
   delete error;
+  //error = nullptr;
 }
 
 static speed_t get_baud(int32_t bitrate, error_s* error) {

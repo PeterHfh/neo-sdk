@@ -36,9 +36,11 @@ const char* error_message(error_s error) {
 }
 
 void error_destruct(error_s error) {
+    //if(error == nullptr)return;
   NEO_ASSERT(error);
-
-  delete error;
+    //printf("error :::: %s\n",neo::protocol::error_message(error));
+    delete error;
+    //error = nullptr;
 }
 
 static uint8_t checksum_response_header(response_header_s* v) {
@@ -187,23 +189,41 @@ void read_response_scan(serial::device_s serial, response_scan_packet_s* scan, e
   }
   uint8_t checksum = checksum_response_scan_packet(scan);
   char *p = (char*)scan;
-  char count = 20; // error count.
-  while (checksum != scan->checksum && count > 0) {
-
+  char count = 100; // error count.
+  while (checksum != scan->checksum && count > 0 ) {
+  /*    if(1)
+      {
+          for (int i = 0; i < 5; ++i) {
+              printf("%02X ",(unsigned char)p[i]);
+          }
+          printf("\n");
+      }*/
     p[0] = p[1];
     p[1] = p[2];
     p[2] = p[3];
     p[3] = p[4];
     serial::device_read(serial, &(p[4]), 1, &serialerror);
-
+      //printf("11112222\n");
     if (serialerror) {
+        //printf("3333222\n");
         *error = error_construct("invalid response scan packet checksum");
         serial::error_destruct(serialerror);
         return;
     }
     checksum = checksum_response_scan_packet(scan);
+    if((p[0]&0x03) != 0x00)checksum = 0x00;
     count--;
+
+    //printf("error checksum count:  %d \n",count);
   }
+  /*  if(count < 10 && count > 7)
+    {
+        for (int i = 0; i < 5; ++i) {
+            printf("%02X ",(unsigned char)p[i]);
+        }
+        printf("\n");
+    }*/
+    //printf("2222\n");
   if (checksum != scan->checksum) {
     *error = error_construct("invalid scan response commands");
     return;

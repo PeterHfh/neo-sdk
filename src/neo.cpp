@@ -64,18 +64,26 @@ static void neo_device_accumulate_scans(neo_device_s device) {
         &protocolerror);
 
     if ( protocolerror ) {
-      neo::protocol::error_destruct(protocolerror);
-      return;
+
+      //neo::protocol::error_destruct(protocolerror);
+      //  printf("sadadsqweqwe\n");
+      continue;
     }
 
     buffer[received++] = parse_payload(response);
 
+
+
+
     const bool is_sync = response.s1
       & neo::protocol::response_scan_packet_sync::sync;
 
-    if ( ( is_sync || ( buffer[received-2].angle - buffer[received-1].angle > 100.0f ) ) && received > 1 ) {
+    if ( received > 1 && ( is_sync || ( ( buffer[received-2].angle - buffer[received-1].angle > 100000.0f ) ) ) ) {
       auto out = std::unique_ptr<neo_scan>(new neo_scan);
       out->count = received - 1;
+      //if(buffer[received-2].angle - buffer[received-1].angle > 100000.0f && !is_sync)
+        //printf("asdasd = %f  %f\n",buffer[received-2].angle, buffer[received-1].angle );
+
       std::copy_n(std::begin(buffer), received - 1, std::begin(out->samples));
 
       device ->scan_queue.enqueue({std::move(out), nullptr});
@@ -226,8 +234,8 @@ void neo_device_start_scanning(neo_device_s device, neo_error_s* error) {
 void neo_device_stop_scanning(neo_device_s device, neo_error_s* error) {
   NEO_ASSERT(device);
   NEO_ASSERT(error);
-
-  if (!device->is_scanning)
+  //  printf("stop cmd.\n");
+  if (!device->is_scanning && device->stop_thread == true)
     return;
   if(device->stop_thread == false)
   {
@@ -235,7 +243,7 @@ void neo_device_stop_scanning(neo_device_s device, neo_error_s* error) {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     while(device->is_scanning == true);
   }
-
+  //printf("first DX cmd.\n");
   neo::protocol::error_s protocolerror = nullptr;
   neo::protocol::write_command(device->serial, neo::protocol::DATA_ACQUISITION_STOP, &protocolerror);
 
@@ -246,7 +254,10 @@ void neo_device_stop_scanning(neo_device_s device, neo_error_s* error) {
   }
 
   // Wait until device stopped sending
-  std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+
+
 
   neo::serial::error_s serialerror = nullptr;
   neo::serial::device_flush(device->serial, &serialerror);
@@ -256,7 +267,7 @@ void neo_device_stop_scanning(neo_device_s device, neo_error_s* error) {
     neo::serial::error_destruct(serialerror);
     return;
   }
-
+  //  printf("sec DX cmd.\n");
   neo::protocol::write_command(device->serial, neo::protocol::DATA_ACQUISITION_STOP, &protocolerror);
 
   if (protocolerror) {
@@ -264,10 +275,10 @@ void neo_device_stop_scanning(neo_device_s device, neo_error_s* error) {
     neo::protocol::error_destruct(protocolerror);
     return;
   }
-
-  neo::protocol::response_header_s response;
+   // printf("read DX cmd.\n");
+    neo::protocol::response_header_s response;
   neo::protocol::read_response_header(device->serial, neo::protocol::DATA_ACQUISITION_STOP, &response, &protocolerror);
-
+  //  printf("read DX cmd end.\n");
   if (protocolerror) {
     *error = neo_error_construct("unable to receive stop scanning command response");
     neo::protocol::error_destruct(protocolerror);
@@ -281,7 +292,7 @@ neo_scan_s neo_device_get_scan(neo_device_s device, neo_error_s* error) {
   NEO_ASSERT(device);
   NEO_ASSERT(error);
   NEO_ASSERT(device->is_scanning);
-
+  //printf("get_scan\n");
   auto out = device->scan_queue.dequeue();
 
   if ( out.error != nullptr ) {
